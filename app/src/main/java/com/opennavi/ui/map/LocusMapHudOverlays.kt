@@ -164,12 +164,14 @@ fun LocusTopTelemetryBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                val displayLat = if (cameraState.followGps) gpsStatus.latitude else cameraState.centerLat
+                val displayLon = if (cameraState.followGps) gpsStatus.longitude else cameraState.centerLon
                 Text(
                     text = String.format(
                         Locale.US,
                         "N %.5f°  E %.5f°  |  Zoom: %.1f",
-                        cameraState.centerLat,
-                        cameraState.centerLon,
+                        displayLat,
+                        displayLon,
                         cameraState.zoom
                     ),
                     color = Color(0xFFCFD8DC),

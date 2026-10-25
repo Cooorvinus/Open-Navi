@@ -29,7 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -48,14 +47,13 @@ import java.util.Locale
  * Menedżer Map Offline (OpenStreetMap dla wybranych państw) z obsługą:
  * - Pobierania całych państw do pamięci lokalnej urządzenia
  * - Sprawdzania dostępności nowych kompilacji OSM na serwerze
- * - Jednoklikowej aktualizacji mapy wybranego państwa
+ * - Jednoklikowej aktualizacji mapy wybranego państwa (gdy dostępna jest nowa wersja)
  */
 @Composable
 fun OfflineMapsManagerSheet(
     countries: List<CountryOfflineMap>,
     onDownloadOrUpdateCountry: (String) -> Unit,
     onCheckAllUpdates: () -> Unit,
-    onSimulateUpdateForCountry: (String) -> Unit,
     onDeleteCountryMap: (String) -> Unit,
     onFlyToCountry: (CountryOfflineMap) -> Unit,
     modifier: Modifier = Modifier
@@ -109,9 +107,8 @@ fun OfflineMapsManagerSheet(
                 CountryMapCard(
                     country = country,
                     onDownloadOrUpdate = { onDownloadOrUpdateCountry(country.countryCode) },
-                    onSimulateUpdate = { onSimulateUpdateForCountry(country.countryCode) },
                     onDelete = { onDeleteCountryMap(country.countryCode) },
-                    onFlyTo = { onFlyToCountry(country) }
+                    onFlyTo = { onFlyToCountry(country.copy()) }
                 )
             }
         }
@@ -122,7 +119,6 @@ fun OfflineMapsManagerSheet(
 private fun CountryMapCard(
     country: CountryOfflineMap,
     onDownloadOrUpdate: () -> Unit,
-    onSimulateUpdate: () -> Unit,
     onDelete: () -> Unit,
     onFlyTo: () -> Unit
 ) {
@@ -155,7 +151,7 @@ private fun CountryMapCard(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "${country.regionName} • ~${country.estimatedSizeMB} MB (OSM Vector)",
+                            text = "${country.regionName} • ~${country.estimatedSizeMB} MB (OSM)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -222,8 +218,15 @@ private fun CountryMapCard(
                 }
 
                 OfflineMapState.DOWNLOADED_UP_TO_DATE -> {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
@@ -235,39 +238,19 @@ private fun CountryMapCard(
                                 dateFormat.format(Date(country.lastUpdatedEpochMillis))
                             } else "Dzisiaj"
                             Text(
-                                text = "Zapisano lokalnie (Aktualna) • $updatedDate",
+                                text = "Zapisano lokalnie (Aktualna • $updatedDate)",
                                 fontSize = 12.sp,
                                 color = Color(0xFF2E7D32),
                                 fontWeight = FontWeight.Medium
                             )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedButton(onClick = onSimulateUpdate) {
-                                Text("Symuluj nową wersję OSM", fontSize = 12.sp)
-                            }
-                            Row {
-                                FilledTonalButton(onClick = onDownloadOrUpdate) {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Przeładuj", fontSize = 12.sp)
-                                }
-                                IconButton(onClick = onDelete) {
-                                    Icon(
-                                        imageVector = Icons.Default.DeleteOutline,
-                                        contentDescription = "Usuń mapę z pamięci",
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
+
+                        IconButton(onClick = onDelete) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = "Usuń mapę z pamięci",
+                                tint = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }
@@ -275,7 +258,7 @@ private fun CountryMapCard(
                 OfflineMapState.UPDATE_AVAILABLE -> {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Dostępna aktualizacja OSM: ${country.remoteVersionTag} (Lokalna: ${country.localVersionTag})",
+                            text = "Dostępna nowa wersja mapy: ${country.remoteVersionTag}",
                             fontSize = 12.sp,
                             color = Color(0xFFE65100),
                             fontWeight = FontWeight.SemiBold

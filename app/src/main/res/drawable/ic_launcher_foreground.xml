@@ -25,9 +25,4 @@
     <path
         android:fillColor="#43A047"
         android:pathData="M54,28L54,61L71,72Z" />
-
-    <!-- Czerwony znacznik Północy (N) u góry tarczy -->
-    <path
-        android:fillColor="#D32F2F"
-        android:pathData="M54,21L50.5,26.5L57.5,26.5Z" />
 </vector>

@@ -86,6 +86,21 @@ class OpenNaviViewModel(
     private val _isCalculatingRoute = MutableStateFlow(false)
     val isCalculatingRoute: StateFlow<Boolean> = _isCalculatingRoute.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            gpsStatus.collect { gps ->
+                if (_cameraState.value.followGps) {
+                    _cameraState.update { current ->
+                        current.copy(
+                            centerLat = gps.latitude,
+                            centerLon = gps.longitude
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     fun startSensors() {
         locationTracker.startTracking()
     }

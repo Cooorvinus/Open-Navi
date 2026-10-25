@@ -94,7 +94,8 @@ fun OpenNaviMapLibreView(
 
         if (currentLoadedStyleUrl != desiredStyleUrl) {
             currentLoadedStyleUrl = desiredStyleUrl
-            map.setStyle(Style.Builder().fromUri(desiredStyleUrl)) { style ->
+            val styleBuilder = if (cameraState.styleTheme.isInlineJson) Style.Builder().fromJson(desiredStyleUrl) else Style.Builder().fromUri(desiredStyleUrl)
+            map.setStyle(styleBuilder) { style ->
                 setupOrUpdateMapOverlays(
                     style = style,
                     gpsStatus = gpsStatus,

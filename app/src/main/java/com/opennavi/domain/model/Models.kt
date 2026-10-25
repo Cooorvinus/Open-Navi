@@ -13,19 +13,45 @@ enum class MapOrientationMode {
 }
 
 /**
- * Styl mapy OpenStreetMap w MapLibre (w 100% darmowe źródła wektorowe).
+ * Styl mapy OpenStreetMap w MapLibre (w 100% darmowe źródła wektorowe i rastrowe).
  */
-enum class MapStyleTheme(val title: String, val styleUrl: String) {
+enum class MapStyleTheme(
+    val title: String,
+    val subtitle: String,
+    val styleUrl: String,
+    val isInlineJson: Boolean = false
+) {
     OUTDOOR_LIBERTY(
-        title = "OSM Liberty (Turystyczna / Topo)",
+        title = "OSM Liberty (Turystyczna 3D)",
+        subtitle = "Wektorowa mapa z budynkami 3D, lasami i punktami POI",
         styleUrl = "https://tiles.openfreemap.org/styles/liberty"
     ),
     BRIGHT_TOPO(
-        title = "OSM Bright (Wyraźna / Szlaki)",
+        title = "OSM Bright (Wyraźna / Drogowa)",
+        subtitle = "Wektorowa mapa o wysokim kontraście dróg i miast",
         styleUrl = "https://tiles.openfreemap.org/styles/bright"
+    ),
+    OPENTOPOMAP(
+        title = "OpenTopoMap (Górska / Poziomice)",
+        subtitle = "Klasyczna mapa topograficzna z poziomicami i cieniowaniem wzgórz",
+        styleUrl = """{"version":8,"sources":{"opentopomap":{"type":"raster","tiles":["https://tile.opentopomap.org/{z}/{x}/{y}.png"],"tileSize":256,"maxzoom":17}},"layers":[{"id":"opentopomap-layer","type":"raster","source":"opentopomap"}]}""",
+        isInlineJson = true
+    ),
+    CYCLOSM(
+        title = "CyclOSM (Rowerowa i Szlaki)",
+        subtitle = "Specjalistyczna mapa tras rowerowych, szlaków pieszych i nawierzchni",
+        styleUrl = """{"version":8,"sources":{"cyclosm":{"type":"raster","tiles":["https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"],"tileSize":256,"maxzoom":19}},"layers":[{"id":"cyclosm-layer","type":"raster","source":"cyclosm"}]}""",
+        isInlineJson = true
+    ),
+    OSM_STANDARD(
+        title = "OpenStreetMap Standard (Carto)",
+        subtitle = "Oficjalny klasyczny widok mapy OpenStreetMap.org",
+        styleUrl = """{"version":8,"sources":{"osm-carto":{"type":"raster","tiles":["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],"tileSize":256,"maxzoom":19}},"layers":[{"id":"osm-carto-layer","type":"raster","source":"osm-carto"}]}""",
+        isInlineJson = true
     ),
     DARK_POSITRON(
         title = "OSM Positron (Minimalistyczna)",
+        subtitle = "Jasna, stonowana mapa wektorowa idealna pod ślady GPX",
         styleUrl = "https://tiles.openfreemap.org/styles/positron"
     )
 }

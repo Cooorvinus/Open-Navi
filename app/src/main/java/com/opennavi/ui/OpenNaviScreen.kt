@@ -375,9 +375,6 @@ fun OpenNaviScreen(
                             onCheckAllUpdates = {
                                 viewModel.checkCountryMapUpdates()
                             },
-                            onSimulateUpdateForCountry = { code ->
-                                viewModel.simulateRemoteMapUpdate(code)
-                            },
                             onDeleteCountryMap = { code ->
                                 viewModel.deleteCountryOfflineMap(code)
                             },
@@ -462,10 +459,18 @@ fun OpenNaviScreen(
                                 }
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = theme.title,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            Column {
+                                Text(
+                                    text = theme.title,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = theme.subtitle,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
