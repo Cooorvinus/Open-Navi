@@ -31,6 +31,18 @@ enum class MapStyleTheme(val title: String, val styleUrl: String) {
 }
 
 /**
+ * Szczegóły pojedynczego satelity GNSS odbieranego przez urządzenie.
+ */
+data class GnssSatelliteDetail(
+    val svid: Int,
+    val constellationName: String,
+    val cn0DbHz: Float,
+    val usedInFix: Boolean,
+    val elevationDegrees: Float,
+    val azimuthDegrees: Float
+)
+
+/**
  * Stan sensora GPS / GNSS oraz kompasu w czasie rzeczywistym.
  */
 data class GpsStatus(
@@ -45,6 +57,7 @@ data class GpsStatus(
     val compassAzimuthDegrees: Float = 0f,
     val satellitesVisible: Int = 0,
     val satellitesUsedInFix: Int = 0,
+    val satelliteDetails: List<GnssSatelliteDetail> = emptyList(),
     val lastFixTimestamp: Long = 0L
 ) {
     val hasValidFix: Boolean

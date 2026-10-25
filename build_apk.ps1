@@ -40,11 +40,10 @@ try {
     Pop-Location
 }
 
-$apkSrc = Join-Path $projectRoot "app\build\outputs\apk\release\app-release.apk"
-$apkDir = Join-Path $projectRoot "APK"
-New-Item -ItemType Directory -Force -Path $apkDir | Out-Null
 $apkDst = Join-Path $apkDir "OpenNavi.apk"
-Copy-Item $apkSrc $apkDst -Force
+if (-not (Test-Path $apkDst)) {
+    Copy-Item $apkSrc $apkDst -Force
+}
 
 $mb = [math]::Round((Get-Item $apkDst).Length / 1MB, 1)
 Write-Host "APK GOTOWE: $apkDst ($mb MB)"

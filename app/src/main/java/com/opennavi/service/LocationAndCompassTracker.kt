@@ -14,6 +14,7 @@ import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import com.opennavi.domain.model.GnssSatelliteDetail
 import com.opennavi.domain.model.GpsStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,13 +44,40 @@ class LocationAndCompassTracker(
         override fun onSatelliteStatusChanged(status: GnssStatus) {
             val total = status.satelliteCount
             var used = 0
+            val details = ArrayList<GnssSatelliteDetail>(total)
             for (i in 0 until total) {
-                if (status.usedInFix(i)) used++
+                val isUsed = status.usedInFix(i)
+                if (isUsed) used++
+                val constellationName = when (status.getConstellationType(i)) {
+                    GnssStatus.CONSTELLATION_GPS -> "GPS (USA)"
+                    GnssStatus.CONSTELLATION_GLONASS -> "GLONASS (RU)"
+                    GnssStatus.CONSTELLATION_GALILEO -> "Galileo (UE)"
+                    GnssStatus.CONSTELLATION_BEIDOU -> "BeiDou (CN)"
+                    GnssStatus.CONSTELLATION_QZSS -> "QZSS (JP)"
+                    GnssStatus.CONSTELLATION_SBAS -> "SBAS"
+                    GnssStatus.CONSTELLATION_IRNSS -> "NavIC (IN)"
+                    else -> "GNSS"
+                }
+                details.add(
+                    GnssSatelliteDetail(
+                        svid = status.getSvid(i),
+                        constellationName = constellationName,
+                        cn0DbHz = status.getCn0DbHz(i),
+                        usedInFix = isUsed,
+                        elevationDegrees = status.getElevationDegrees(i),
+                        azimuthDegrees = status.getAzimuthDegrees(i)
+                    )
+                )
             }
+            val sortedDetails = details.sortedWith(
+                compareByDescending<GnssSatelliteDetail> { it.usedInFix }
+                    .thenByDescending { it.cn0DbHz }
+            )
             _gpsStatus.update { current ->
                 current.copy(
                     satellitesVisible = total,
-                    satellitesUsedInFix = used
+                    satellitesUsedInFix = used,
+                    satelliteDetails = sortedDetails
                 )
             }
         }

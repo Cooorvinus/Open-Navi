@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Snackbar
@@ -115,7 +116,7 @@ fun OpenNaviScreen(
             modifier = Modifier.align(Alignment.Center)
         )
 
-        // 3. Górny pasek telemetryczny GPS / GNSS / Wysokościomierz
+        // 3. Górny pasek telemetryczny GPS / GNSS / Wysokościomierz (bez zdublowanego przycisku warstw)
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -123,8 +124,7 @@ fun OpenNaviScreen(
         ) {
             LocusTopTelemetryBar(
                 gpsStatus = gpsStatus,
-                cameraState = cameraState,
-                onOpenStylePicker = { showStyleDialog = true }
+                cameraState = cameraState
             )
 
             // Pasek statusu aktywnego nagrywania GPX (jeśli trwa)
@@ -186,7 +186,7 @@ fun OpenNaviScreen(
 
             SmallFloatingActionButton(
                 onClick = { viewModel.toggle3DTilt() },
-                containerColor = Color(0xD9161B22),
+                containerColor = Color(0xE6161B22),
                 contentColor = if (cameraState.tiltDegrees > 10.0) Color(0xFF4CAF50) else Color.White,
                 shape = CircleShape
             ) {
@@ -207,7 +207,7 @@ fun OpenNaviScreen(
         ) {
             SmallFloatingActionButton(
                 onClick = { viewModel.zoomBy(1.0) },
-                containerColor = Color(0xD9161B22),
+                containerColor = Color(0xE6161B22),
                 contentColor = Color.White,
                 shape = CircleShape
             ) {
@@ -216,7 +216,7 @@ fun OpenNaviScreen(
 
             SmallFloatingActionButton(
                 onClick = { viewModel.zoomBy(-1.0) },
-                containerColor = Color(0xD9161B22),
+                containerColor = Color(0xE6161B22),
                 contentColor = Color.White,
                 shape = CircleShape
             ) {
@@ -227,7 +227,7 @@ fun OpenNaviScreen(
 
             FloatingActionButton(
                 onClick = { viewModel.centerOnGpsAndCycleOrientation() },
-                containerColor = if (cameraState.followGps) Color(0xFF1B5E20) else Color(0xD9161B22),
+                containerColor = if (cameraState.followGps) Color(0xFF1B5E20) else Color(0xE6161B22),
                 contentColor = Color.White,
                 shape = CircleShape
             ) {
@@ -256,61 +256,97 @@ fun OpenNaviScreen(
             }
         }
 
-        // 7. Dolny pasek narzędziowy w stylu Locus Map
+        // 7. Dolny pasek narzędziowy w stylu Locus Map (wysoki kontrast białych ikon i tekstów)
+        val navItemColors = NavigationBarItemDefaults.colors(
+            selectedIconColor = Color(0xFF1B5E20),
+            selectedTextColor = Color.White,
+            indicatorColor = Color(0xFFA5D6A7),
+            unselectedIconColor = Color.White,
+            unselectedTextColor = Color(0xFFECEFF1)
+        )
+
         NavigationBar(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding(),
-            containerColor = Color(0xE6161B22),
+            containerColor = Color(0xF5161B22),
             contentColor = Color.White
         ) {
             NavigationBarItem(
                 selected = activeBottomPanel == ActiveBottomPanel.OFFLINE_MAPS,
                 onClick = { activeBottomPanel = ActiveBottomPanel.OFFLINE_MAPS },
+                colors = navItemColors,
                 icon = {
                     Icon(
                         imageVector = Icons.Default.CloudDownload,
                         contentDescription = "Mapy Państw Offline"
                     )
                 },
-                label = { Text("Mapy Państw") }
+                label = {
+                    Text(
+                        text = "Mapy Państw",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp
+                    )
+                }
             )
 
             NavigationBarItem(
                 selected = activeBottomPanel == ActiveBottomPanel.TRACKS_GPX,
                 onClick = { activeBottomPanel = ActiveBottomPanel.TRACKS_GPX },
+                colors = navItemColors,
                 icon = {
                     Icon(
                         imageVector = Icons.Default.Timeline,
                         contentDescription = "Nagrywanie i Ślady GPX",
-                        tint = if (recordingSession.isRecording) Color(0xFFFF5252) else Color.Unspecified
+                        tint = if (recordingSession.isRecording) Color(0xFFFF5252) else Color.White
                     )
                 },
-                label = { Text(if (recordingSession.isRecording) "REC GPX" else "Ślady GPX") }
+                label = {
+                    Text(
+                        text = if (recordingSession.isRecording) "REC GPX" else "Ślady GPX",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp
+                    )
+                }
             )
 
             NavigationBarItem(
                 selected = activeBottomPanel == ActiveBottomPanel.WAYPOINTS_ROUTING,
                 onClick = { activeBottomPanel = ActiveBottomPanel.WAYPOINTS_ROUTING },
+                colors = navItemColors,
                 icon = {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = "Punkty POI i Trasa"
                     )
                 },
-                label = { Text("POI i Trasa") }
+                label = {
+                    Text(
+                        text = "POI i Trasa",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp
+                    )
+                }
             )
 
             NavigationBarItem(
                 selected = showStyleDialog,
                 onClick = { showStyleDialog = true },
+                colors = navItemColors,
                 icon = {
                     Icon(
                         imageVector = Icons.Default.Layers,
                         contentDescription = "Style OSM"
                     )
                 },
-                label = { Text("Warstwy OSM") }
+                label = {
+                    Text(
+                        text = "Warstwy OSM",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp
+                    )
+                }
             )
         }
     }

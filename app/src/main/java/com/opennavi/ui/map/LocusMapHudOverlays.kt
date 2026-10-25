@@ -1,5 +1,6 @@
 package com.opennavi.ui.map
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,20 +17,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CompassCalibration
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.GpsFixed
-import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.SatelliteAlt
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,16 +53,18 @@ import java.util.Locale
 
 /**
  * Górny pasek telemetryczny w stylu Locus Map Pro:
- * prezentuje liczbę satelitów GNSS, dokładność GPS, wysokość n.p.m., aktualną prędkość
- * oraz współrzędne środka mapy / odległość celownika od pozycji GPS.
+ * - prezentuje liczbę satelitów GNSS (po kliknięciu rozwija pełne szczegóły połączenia i wyjaśnienie X/Y),
+ * - dokładność GPS, wysokość n.p.m., aktualną prędkość,
+ * - współrzędne środka mapy i powiększenie ("Zoom").
  */
 @Composable
 fun LocusTopTelemetryBar(
     gpsStatus: GpsStatus,
     cameraState: MapCameraState,
-    onOpenStylePicker: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showSatelliteDetails by remember { mutableStateOf(false) }
+
     val distanceFromGpsMeters = GpxSerializer.haversineDistanceMeters(
         gpsStatus.latitude,
         gpsStatus.longitude,
@@ -73,7 +78,7 @@ fun LocusTopTelemetryBar(
             .padding(horizontal = 12.dp, vertical = 6.dp),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xD9161B22)
+            containerColor = Color(0xE6161B22)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
@@ -87,12 +92,18 @@ fun LocusTopTelemetryBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Status satelitów GNSS
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Klikalna sekcja statusu satelitów GNSS (rozwija szczegóły poniżej)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { showSatelliteDetails = !showSatelliteDetails }
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Default.SatelliteAlt,
-                        contentDescription = "GNSS",
-                        tint = if (gpsStatus.hasValidFix) Color(0xFF4CAF50) else Color(0xFFFFB300),
+                        contentDescription = "Szczegóły satelitów GNSS",
+                        tint = if (gpsStatus.satellitesUsedInFix > 0) Color(0xFF4CAF50) else Color(0xFFFFB300),
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -102,19 +113,25 @@ fun LocusTopTelemetryBar(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = if (showSatelliteDetails) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = "Rozwiń szczegóły satelitów",
+                        tint = Color(0xFF90A4AE),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (gpsStatus.hasValidFix) {
                             String.format(Locale.US, "±%.0f m", gpsStatus.accuracyMeters)
                         } else {
-                            "Szukanie GPS..."
+                            "Szukanie..."
                         },
                         color = Color(0xFFB0BEC5),
                         fontSize = 12.sp
                     )
                 }
 
-                // Wysokość n.p.m. oraz prędkość
+                // Wysokość n.p.m. oraz prędkość (bez zdublowanego przycisku warstw)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Terrain,
@@ -136,24 +153,12 @@ fun LocusTopTelemetryBar(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    IconButton(
-                        onClick = onOpenStylePicker,
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Layers,
-                            contentDescription = "Warstwy mapy OSM",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Dolny wiersz: Współrzędne środka mapy + odległość od pozycji GPS (gdy przesunięto mapę)
+            // Dolny wiersz: Współrzędne środka mapy + Zoom + tryb orientacji / odległość celownika
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -162,7 +167,7 @@ fun LocusTopTelemetryBar(
                 Text(
                     text = String.format(
                         Locale.US,
-                        "N %.5f°  E %.5f°  |  Z:%.1f",
+                        "N %.5f°  E %.5f°  |  Zoom: %.1f",
                         cameraState.centerLat,
                         cameraState.centerLon,
                         cameraState.zoom
@@ -198,6 +203,106 @@ fun LocusTopTelemetryBar(
                     )
                 }
             }
+
+            // Rozwijany panel szczegółów satelitów GNSS po kliknięciu w ikonkę satelitów
+            AnimatedVisibility(visible = showSatelliteDetails) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    HorizontalDivider(color = Color(0xFF37474F), thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Szczegóły połączenia satelitarnego GNSS (${gpsStatus.satellitesUsedInFix}/${gpsStatus.satellitesVisible})",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    val fixHint = if (gpsStatus.satellitesUsedInFix == 0) {
+                        "Wskazówka: 0/${gpsStatus.satellitesVisible} oznacza, że telefon widzi satelity, ale sygnał jest jeszcze zbyt słaby na dokładny Fix GPS (np. wewnątrz budynku) – aktualna pozycja może pochodzić z sieci Wi-Fi/LTE."
+                    } else {
+                        "Połączenie satelitarne GPS/GNSS jest aktywne i stabilne."
+                    }
+                    Text(
+                        text = "• Pierwsza liczba (${gpsStatus.satellitesUsedInFix}) – satelity aktywnie używane do obliczenia Twojej pozycji (Fix).\n" +
+                            "• Druga liczba (${gpsStatus.satellitesVisible}) – wszystkie satelity widoczne na niebie.\n" +
+                            fixHint,
+                        color = Color(0xFFB0BEC5),
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp
+                    )
+
+                    if (gpsStatus.satelliteDetails.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Podsumowanie konstelacji (GPS, Galileo, GLONASS, BeiDou)
+                        val groupedBySystem = gpsStatus.satelliteDetails.groupBy { it.constellationName }
+                        val summaryText = groupedBySystem.entries.joinToString("  •  ") { (name, list) ->
+                            val usedCount = list.count { it.usedInFix }
+                            "$name: $usedCount/${list.size}"
+                        }
+                        Text(
+                            text = "Systemy: $summaryText",
+                            color = Color(0xFF80CBC4),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Lista najsilniejszych satelitów (maksymalnie 8 wierszy, aby nie zasłonić całej mapy)
+                        gpsStatus.satelliteDetails.take(8).forEach { sat ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${sat.constellationName} #${sat.svid}",
+                                    color = if (sat.usedInFix) Color(0xFF81C784) else Color(0xFFCFD8DC),
+                                    fontSize = 11.sp,
+                                    fontWeight = if (sat.usedInFix) FontWeight.Bold else FontWeight.Normal,
+                                    modifier = Modifier.width(120.dp)
+                                )
+
+                                LinearProgressIndicator(
+                                    progress = { (sat.cn0DbHz / 50f).coerceIn(0f, 1f) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(6.dp)
+                                        .padding(horizontal = 8.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = if (sat.usedInFix) Color(0xFF4CAF50) else Color(0xFFFFB300),
+                                    trackColor = Color(0xFF263238)
+                                )
+
+                                Text(
+                                    text = String.format(
+                                        Locale.US,
+                                        "%.0f dBHz (%s)",
+                                        sat.cn0DbHz,
+                                        if (sat.usedInFix) "Używany" else "Widoczny"
+                                    ),
+                                    color = if (sat.usedInFix) Color(0xFF81C784) else Color(0xFF90A4AE),
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Oczekiwanie na raport z odbiornika sprzętowego GNSS...",
+                            color = Color(0xFFFFCC80),
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -217,7 +322,7 @@ fun LocusCompassOverlay(
             .size(56.dp)
             .clip(CircleShape)
             .clickable { onClickResetNorth() },
-        color = Color(0xD9161B22),
+        color = Color(0xE6161B22),
         shape = CircleShape,
         shadowElevation = 6.dp
     ) {
@@ -231,7 +336,6 @@ fun LocusCompassOverlay(
                 )
 
                 rotate(degrees = -azimuthDegrees) {
-                    // Czerwona igła Północy (N)
                     val northPath = Path().apply {
                         moveTo(center.x, center.y - radius * 0.78f)
                         lineTo(center.x - 5.dp.toPx(), center.y)
@@ -240,7 +344,6 @@ fun LocusCompassOverlay(
                     }
                     drawPath(northPath, color = Color(0xFFE53935))
 
-                    // Biała igła Południa (S)
                     val southPath = Path().apply {
                         moveTo(center.x, center.y + radius * 0.78f)
                         lineTo(center.x - 5.dp.toPx(), center.y)
@@ -279,14 +382,12 @@ fun LocusMapCrosshair(
         val gap = 6.dp.toPx()
         val half = size.minDimension / 2f
 
-        // Okrąg celownika
         drawCircle(
             color = Color(0xCC263238),
             radius = 10.dp.toPx(),
             style = Stroke(width = strokeWidth)
         )
 
-        // Linie krzyża
         drawLine(
             color = Color(0xFFD32F2F),
             start = Offset(0f, half),
