@@ -174,25 +174,33 @@ data class RecordedTrack(
  * Kategoria punktu Waypoint / POI w stylu Locus Map.
  */
 enum class WaypointCategory(val labelPl: String, val colorHex: String) {
-    PEAK("Szczyt / Punkt widokowy", "#D32F2F"),
-    SHELTER("Schronisko / Biwak", "#388E3C"),
-    PARKING("Parking / Start trasy", "#1976D2"),
-    WATER("Źródło wody / Sklep", "#0288D1"),
+    PEAK("Szczyt / Góra", "#D32F2F"),
+    VIEWPOINT("Punkt widokowy", "#E64A19"),
+    SHELTER("Schronisko / Chatka", "#388E3C"),
+    CAMP("Biwak / Pole namiotowe", "#689F38"),
+    PARKING("Parking / Start szlaku", "#1976D2"),
+    WATER("Źródło wody / Studnia", "#0288D1"),
+    FOOD("Restauracja / Sklep", "#F57C00"),
+    ATTRACTION("Atrakcja / Zabytek", "#7B1FA2"),
     WARNING("Uwaga / Niebezpieczeństwo", "#FBC02D"),
-    CUSTOM("Własny punkt", "#8E24AA")
+    CUSTOM("Własny punkt", "#5D4037")
 }
 
 /**
- * Punkt użytkownika (Waypoint / POI) zapisany na mapie.
+ * Punkt użytkownika (Waypoint / POI) zapisany na mapie (inspirowany Locus Map Point Manager).
  */
 data class Waypoint(
     val id: Long = 0L,
     val name: String,
+    val folderName: String = "Ulubione",
     val description: String = "",
     val latitude: Double,
     val longitude: Double,
     val altitudeMeters: Double = 0.0,
     val category: WaypointCategory = WaypointCategory.CUSTOM,
+    val colorHex: String = category.colorHex,
+    val phone: String = "",
+    val url: String = "",
     val createdAtMillis: Long = System.currentTimeMillis()
 )
 

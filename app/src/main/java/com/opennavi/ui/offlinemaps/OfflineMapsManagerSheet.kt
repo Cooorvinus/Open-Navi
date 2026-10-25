@@ -14,23 +14,31 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,10 +52,10 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Menedżer Map Offline (OpenStreetMap dla wybranych państw) z obsługą:
- * - Pobierania całych państw do pamięci lokalnej urządzenia
- * - Sprawdzania dostępności nowych kompilacji OSM na serwerze
- * - Jednoklikowej aktualizacji mapy wybranego państwa (gdy dostępna jest nowa wersja)
+ * Menedżer Map Offline (OpenStreetMap dla wybranych państw) z:
+ * - Wyszukiwarką państw (po nazwie państwa, kodzie ISO lub regionie górskim)
+ * - Filtrem "Wszystkie / Tylko pobrane"
+ * - Pobieraniem całych państw do pamięci lokalnej oraz aktualizacją nowych wersji OSM
  */
 @Composable
 fun OfflineMapsManagerSheet(
@@ -58,10 +66,30 @@ fun OfflineMapsManagerSheet(
     onFlyToCountry: (CountryOfflineMap) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+    var showOnlyDownloaded by remember { mutableStateOf(false) }
+
     val downloadedCount = countries.count {
         it.state == OfflineMapState.DOWNLOADED_UP_TO_DATE || it.state == OfflineMapState.UPDATE_AVAILABLE
     }
     val updatesCount = countries.count { it.state == OfflineMapState.UPDATE_AVAILABLE }
+
+    val filteredCountries = remember(countries, searchQuery, showOnlyDownloaded) {
+        val query = searchQuery.trim().lowercase(Locale.getDefault())
+        countries.filter { country ->
+            val matchesDownloaded = !showOnlyDownloaded ||
+                country.state == OfflineMapState.DOWNLOADED_UP_TO_DATE ||
+                country.state == OfflineMapState.UPDATE_AVAILABLE ||
+                country.state == OfflineMapState.DOWNLOADING
+
+            val matchesSearch = query.isEmpty() ||
+                country.countryNamePl.lowercase(Locale.getDefault()).contains(query) ||
+                country.countryCode.lowercase(Locale.getDefault()).contains(query) ||
+                country.regionName.lowercase(Locale.getDefault()).contains(query)
+
+            matchesDownloaded && matchesSearch
+        }
+    }
 
     Column(
         modifier = modifier
@@ -80,7 +108,7 @@ fun OfflineMapsManagerSheet(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Pobrane państwa: $downloadedCount  •  Aktualizacje: $updatesCount",
+                    text = "Katalog: ${countries.size} państw  •  Pobrane: $downloadedCount  •  Aktualizacje: $updatesCount",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -93,23 +121,86 @@ fun OfflineMapsManagerSheet(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Sprawdź aktualizacje")
+                Text("Aktualizacje")
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(countries, key = { it.countryCode }) { country ->
-                CountryMapCard(
-                    country = country,
-                    onDownloadOrUpdate = { onDownloadOrUpdateCountry(country.countryCode) },
-                    onDelete = { onDeleteCountryMap(country.countryCode) },
-                    onFlyTo = { onFlyToCountry(country.copy()) }
+        // Wyszukiwarka państw
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("Szukaj państwa, kodu (np. PL, SK) lub pasma (np. Alpy, Tatry)...") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Szukaj państwa"
                 )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "Wyczyść wyszukiwanie"
+                        )
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Pasek szybkiego filtrowania
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FilterChip(
+                selected = !showOnlyDownloaded,
+                onClick = { showOnlyDownloaded = false },
+                label = { Text("Wszystkie państwa (${countries.size})") }
+            )
+            FilterChip(
+                selected = showOnlyDownloaded,
+                onClick = { showOnlyDownloaded = true },
+                label = { Text("Pobrane lokalnie ($downloadedCount)") }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (filteredCountries.isEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Nie znaleziono państwa pasującego do zapytania \"$searchQuery\".",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(filteredCountries, key = { it.countryCode }) { country ->
+                    CountryMapCard(
+                        country = country,
+                        onDownloadOrUpdate = { onDownloadOrUpdateCountry(country.countryCode) },
+                        onDelete = { onDeleteCountryMap(country.countryCode) },
+                        onFlyTo = { onFlyToCountry(country.copy()) }
+                    )
+                }
             }
         }
     }
@@ -137,7 +228,10 @@ private fun CountryMapCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Map,
                         contentDescription = null,

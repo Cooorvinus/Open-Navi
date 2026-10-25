@@ -121,6 +121,110 @@ class OfflineMapRepository(
             boundingBox = BoundingBox(20.93, 53.89, 26.83, 56.45),
             downloadUrl = "https://download.geofabrik.de/europe/lithuania-latest.osm.pbf",
             estimatedSizeMB = 185L
+        ),
+        CountryOfflineMap(
+            countryCode = "FR",
+            countryNamePl = "Francja (Alpy / Pireneje)",
+            regionName = "Europa Zachodnia",
+            boundingBox = BoundingBox(-5.14, 41.33, 9.56, 51.09),
+            downloadUrl = "https://download.geofabrik.de/europe/france-latest.osm.pbf",
+            estimatedSizeMB = 3980L
+        ),
+        CountryOfflineMap(
+            countryCode = "SI",
+            countryNamePl = "Słowenia (Alpy Julijskie)",
+            regionName = "Europa Południowa",
+            boundingBox = BoundingBox(13.38, 45.42, 16.61, 46.88),
+            downloadUrl = "https://download.geofabrik.de/europe/slovenia-latest.osm.pbf",
+            estimatedSizeMB = 165L
+        ),
+        CountryOfflineMap(
+            countryCode = "HU",
+            countryNamePl = "Węgry",
+            regionName = "Europa Środkowa",
+            boundingBox = BoundingBox(16.11, 45.74, 22.90, 48.59),
+            downloadUrl = "https://download.geofabrik.de/europe/hungary-latest.osm.pbf",
+            estimatedSizeMB = 340L
+        ),
+        CountryOfflineMap(
+            countryCode = "RO",
+            countryNamePl = "Rumunia (Karpaty Południowe)",
+            regionName = "Europa Południowo-Wschodnia",
+            boundingBox = BoundingBox(20.26, 43.62, 29.72, 48.27),
+            downloadUrl = "https://download.geofabrik.de/europe/romania-latest.osm.pbf",
+            estimatedSizeMB = 410L
+        ),
+        CountryOfflineMap(
+            countryCode = "BG",
+            countryNamePl = "Bułgaria (Riła / Piryn)",
+            regionName = "Europa Południowo-Wschodnia",
+            boundingBox = BoundingBox(22.36, 41.23, 28.61, 44.22),
+            downloadUrl = "https://download.geofabrik.de/europe/bulgaria-latest.osm.pbf",
+            estimatedSizeMB = 225L
+        ),
+        CountryOfflineMap(
+            countryCode = "GR",
+            countryNamePl = "Grecja (Kontynent i Wyspy)",
+            regionName = "Europa Południowa",
+            boundingBox = BoundingBox(19.37, 34.80, 29.65, 41.75),
+            downloadUrl = "https://download.geofabrik.de/europe/greece-latest.osm.pbf",
+            estimatedSizeMB = 360L
+        ),
+        CountryOfflineMap(
+            countryCode = "PT",
+            countryNamePl = "Portugalia",
+            regionName = "Europa Południowa",
+            boundingBox = BoundingBox(-9.52, 36.96, -6.19, 42.15),
+            downloadUrl = "https://download.geofabrik.de/europe/portugal-latest.osm.pbf",
+            estimatedSizeMB = 320L
+        ),
+        CountryOfflineMap(
+            countryCode = "SE",
+            countryNamePl = "Szwecja",
+            regionName = "Europa Północna",
+            boundingBox = BoundingBox(11.11, 55.34, 24.16, 69.06),
+            downloadUrl = "https://download.geofabrik.de/europe/sweden-latest.osm.pbf",
+            estimatedSizeMB = 820L
+        ),
+        CountryOfflineMap(
+            countryCode = "FI",
+            countryNamePl = "Finlandia",
+            regionName = "Europa Północna",
+            boundingBox = BoundingBox(19.51, 59.81, 31.59, 70.09),
+            downloadUrl = "https://download.geofabrik.de/europe/finland-latest.osm.pbf",
+            estimatedSizeMB = 680L
+        ),
+        CountryOfflineMap(
+            countryCode = "GB",
+            countryNamePl = "Wielka Brytania (Szkocja / Walia / Anglia)",
+            regionName = "Europa Północno-Zachodnia",
+            boundingBox = BoundingBox(-8.65, 49.86, 1.77, 60.86),
+            downloadUrl = "https://download.geofabrik.de/europe/great-britain-latest.osm.pbf",
+            estimatedSizeMB = 1890L
+        ),
+        CountryOfflineMap(
+            countryCode = "UA",
+            countryNamePl = "Ukraina (Czarnohora / Karpaty)",
+            regionName = "Europa Wschodnia",
+            boundingBox = BoundingBox(22.14, 44.39, 40.23, 52.38),
+            downloadUrl = "https://download.geofabrik.de/europe/ukraine-latest.osm.pbf",
+            estimatedSizeMB = 950L
+        ),
+        CountryOfflineMap(
+            countryCode = "ME",
+            countryNamePl = "Czarnogóra (Durmitor / Prokletije)",
+            regionName = "Europa Południowa",
+            boundingBox = BoundingBox(18.43, 41.85, 20.36, 43.56),
+            downloadUrl = "https://download.geofabrik.de/europe/montenegro-latest.osm.pbf",
+            estimatedSizeMB = 65L
+        ),
+        CountryOfflineMap(
+            countryCode = "AL",
+            countryNamePl = "Albania (Góry Przeklęte)",
+            regionName = "Europa Południowa",
+            boundingBox = BoundingBox(19.26, 39.64, 21.06, 42.66),
+            downloadUrl = "https://download.geofabrik.de/europe/albania-latest.osm.pbf",
+            estimatedSizeMB = 85L
         )
     )
 

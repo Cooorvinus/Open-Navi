@@ -205,11 +205,15 @@ class TrackAndWaypointRepository(
         return Waypoint(
             id = id,
             name = name,
+            folderName = folderName.ifBlank { "Ulubione" },
             description = description,
             latitude = latitude,
             longitude = longitude,
             altitudeMeters = altitudeMeters,
             category = category,
+            colorHex = colorHex.ifBlank { category.colorHex },
+            phone = phone,
+            url = url,
             createdAtMillis = createdAtMillis
         )
     }
@@ -218,11 +222,15 @@ class TrackAndWaypointRepository(
         WaypointEntity(
             id = id,
             name = name,
+            folderName = folderName,
             description = description,
             latitude = latitude,
             longitude = longitude,
             altitudeMeters = altitudeMeters,
             categoryName = category.name,
+            colorHex = colorHex,
+            phone = phone,
+            url = url,
             createdAtMillis = createdAtMillis
         )
 }

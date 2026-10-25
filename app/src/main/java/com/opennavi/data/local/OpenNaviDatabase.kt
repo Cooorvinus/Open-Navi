@@ -47,11 +47,15 @@ data class TrackEntity(
 data class WaypointEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val name: String,
+    val folderName: String = "Ulubione",
     val description: String,
     val latitude: Double,
     val longitude: Double,
     val altitudeMeters: Double,
     val categoryName: String,
+    val colorHex: String = "#D32F2F",
+    val phone: String = "",
+    val url: String = "",
     val createdAtMillis: Long
 )
 
@@ -106,7 +110,7 @@ interface WaypointDao {
         TrackEntity::class,
         WaypointEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class OpenNaviDatabase : RoomDatabase() {

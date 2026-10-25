@@ -419,18 +419,21 @@ fun OpenNaviScreen(
                     ActiveBottomPanel.WAYPOINTS_ROUTING -> {
                         WaypointsAndRoutingSheet(
                             waypoints = savedWaypoints,
+                            gpsStatus = gpsStatus,
+                            cameraState = cameraState,
                             activeRoute = activeRoute,
                             isCalculatingRoute = isCalculatingRoute,
-                            onAddWaypoint = { name, desc, cat, useGps ->
-                                viewModel.addWaypointAtMapCenter(name, desc, cat, useGps)
+                            onSaveWaypoint = { waypoint ->
+                                viewModel.saveDetailedWaypoint(waypoint)
                             },
                             onDeleteWaypoint = { viewModel.deleteWaypoint(it) },
                             onFlyToWaypoint = { wpt ->
                                 viewModel.flyToLocation(wpt.latitude, wpt.longitude, 15.0)
                                 activeBottomPanel = ActiveBottomPanel.NONE
                             },
-                            onCalculateRouteToCenter = { profile ->
-                                viewModel.calculateRouteFromGpsToMapCenter(profile)
+                            onCalculateRouteToDestination = { lat, lon, profile ->
+                                viewModel.calculateRouteFromGpsToDestination(lat, lon, profile)
+                                activeBottomPanel = ActiveBottomPanel.NONE
                             },
                             onClearRoute = { viewModel.clearActiveRoute() }
                         )

@@ -269,29 +269,33 @@ class OpenNaviViewModel(
         }
     }
 
-    fun addWaypointAtMapCenter(
-        name: String,
-        description: String,
-        category: WaypointCategory,
-        useGpsLocation: Boolean
-    ) {
+    fun saveDetailedWaypoint(waypoint: Waypoint) {
         viewModelScope.launch {
-            val gps = gpsStatus.value
-            val cam = cameraState.value
-            val lat = if (useGpsLocation) gps.latitude else cam.centerLat
-            val lon = if (useGpsLocation) gps.longitude else cam.centerLon
-            val alt = if (useGpsLocation) gps.altitudeMeters else 0.0
-
-            val waypoint = Waypoint(
-                name = name.ifBlank { "Punkt ${category.labelPl}" },
-                description = description,
-                latitude = lat,
-                longitude = lon,
-                altitudeMeters = alt,
-                category = category
-            )
             trackAndWaypointRepository.saveWaypoint(waypoint)
-            showMessage("Dodano punkt: ${waypoint.name}")
+            showMessage("Zapisano punkt POI: ${waypoint.name} [${waypoint.folderName}]")
+        }
+    }
+
+    fun calculateRouteFromGpsToDestination(targetLat: Double, targetLon: Double, profile: RoutingProfile) {
+        val gps = gpsStatus.value
+        _isCalculatingRoute.value = true
+
+        viewModelScope.launch {
+            val res = trackAndWaypointRepository.calculateRoute(
+                startLat = gps.latitude,
+                startLon = gps.longitude,
+                endLat = targetLat,
+                endLon = targetLon,
+                profile = profile
+            )
+            _isCalculatingRoute.value = false
+            res.onSuccess { route ->
+                _activeRoute.value = route
+                val distKm = String.format(Locale.US, "%.1f km", route.distanceMeters / 1000.0)
+                showMessage("Wyznaczono trasę (${profile.labelPl}): $distKm")
+            }.onFailure { err ->
+                showMessage("Nie udało się wyznaczyć trasy: ${err.localizedMessage}")
+            }
         }
     }
 
