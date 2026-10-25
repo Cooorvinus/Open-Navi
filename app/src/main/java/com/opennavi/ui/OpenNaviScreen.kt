@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.opennavi.domain.model.MapOrientationMode
 import com.opennavi.domain.model.MapStyleTheme
 import com.opennavi.domain.model.RecordedTrack
@@ -116,11 +117,12 @@ fun OpenNaviScreen(
             modifier = Modifier.align(Alignment.Center)
         )
 
-        // 3. Górny pasek telemetryczny GPS / GNSS / Wysokościomierz (bez zdublowanego przycisku warstw)
+        // 3. Górny pasek telemetryczny GPS / GNSS / Wysokościomierz (zawsze na wierzchu po rozwinięciu)
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
+                .zIndex(10f)
         ) {
             LocusTopTelemetryBar(
                 gpsStatus = gpsStatus,
@@ -240,19 +242,22 @@ fun OpenNaviScreen(
             }
         }
 
-        // 6. Powiadomienie Snackbar nad dolnym paskiem
+        // 6. Automatycznie znikające powiadomienie nad dolnym paskiem (bez konieczności klikania OK)
         if (bannerMessage != null) {
             Snackbar(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 96.dp, start = 16.dp, end = 16.dp),
-                action = {
-                    TextButton(onClick = { viewModel.dismissBannerMessage() }) {
-                        Text("OK", color = Color(0xFF81C784))
-                    }
-                }
+                    .navigationBarsPadding()
+                    .padding(bottom = 112.dp, start = 16.dp, end = 16.dp)
+                    .zIndex(8f),
+                containerColor = Color(0xF0161B22),
+                contentColor = Color.White,
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text(bannerMessage.orEmpty())
+                Text(
+                    text = bannerMessage.orEmpty(),
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
 

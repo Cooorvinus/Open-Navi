@@ -35,9 +35,9 @@ import org.maplibre.android.style.sources.GeoJsonSource
 
 /**
  * Natywny komponent MapLibre w Jetpack Compose obsługujący:
- * - Wektorowe mapy OpenStreetMap (online + pobrane regiony państw offline)
+ * - Wektorowe i topograficzne mapy OpenStreetMap
  * - Warstwy GeoJSON dla aktualnie nagrywanego śladu GPX, zapisanych śladów, wyznaczonej trasy i punktów POI
- * - Płynny obrót mapy według kompasu lub kierunku GPS (w stylu Locus Map)
+ * - Płynne szczypanie mapy (pinch-to-zoom) i przesuwanie bez nadpisywania poziomu powiększenia
  */
 @Composable
 fun OpenNaviMapLibreView(
@@ -61,6 +61,7 @@ fun OpenNaviMapLibreView(
 
     var mapLibreInstance by remember { mutableStateOf<MapLibreMap?>(null) }
     var currentLoadedStyleUrl by remember { mutableStateOf("") }
+    var isUserGestureInProgress by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner, mapView) {
         val observer = LifecycleEventObserver { _, event ->
@@ -94,7 +95,11 @@ fun OpenNaviMapLibreView(
 
         if (currentLoadedStyleUrl != desiredStyleUrl) {
             currentLoadedStyleUrl = desiredStyleUrl
-            val styleBuilder = if (cameraState.styleTheme.isInlineJson) Style.Builder().fromJson(desiredStyleUrl) else Style.Builder().fromUri(desiredStyleUrl)
+            val styleBuilder = if (cameraState.styleTheme.isInlineJson) {
+                Style.Builder().fromJson(desiredStyleUrl)
+            } else {
+                Style.Builder().fromUri(desiredStyleUrl)
+            }
             map.setStyle(styleBuilder) { style ->
                 setupOrUpdateMapOverlays(
                     style = style,
@@ -119,25 +124,11 @@ fun OpenNaviMapLibreView(
         }
     }
 
-    // Aktualizacja kamery (podążanie za GPS, obrót według kompasu/ruchu, pochylenie 3D)
-    LaunchedEffect(
-        mapLibreInstance,
-        cameraState.centerLat,
-        cameraState.centerLon,
-        cameraState.zoom,
-        cameraState.tiltDegrees,
-        cameraState.followGps,
-        cameraState.orientationMode,
-        gpsStatus.latitude,
-        gpsStatus.longitude,
-        gpsStatus.compassAzimuthDegrees,
-        gpsStatus.bearingDegrees
-    ) {
+    // 1. Jawne komendy kamery (przyciski +/-, przełącznik 3D, "Pokaż na mapie", przycisk centrowania GPS)
+    LaunchedEffect(mapLibreInstance, cameraState.cameraCommandId) {
         val map = mapLibreInstance ?: return@LaunchedEffect
-
         val targetLat = if (cameraState.followGps) gpsStatus.latitude else cameraState.centerLat
         val targetLon = if (cameraState.followGps) gpsStatus.longitude else cameraState.centerLon
-
         val targetBearing = when (cameraState.orientationMode) {
             MapOrientationMode.NORTH_UP -> 0.0
             MapOrientationMode.COMPASS_ROTATE -> gpsStatus.compassAzimuthDegrees.toDouble()
@@ -151,7 +142,39 @@ fun OpenNaviMapLibreView(
             .bearing(targetBearing)
             .build()
 
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 350)
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 300)
+    }
+
+    // 2. Płynne podążanie za GPS i kompasem (tylko gdy tryb followGps jest włączony i użytkownik nie wykonuje gestu)
+    LaunchedEffect(
+        mapLibreInstance,
+        cameraState.followGps,
+        cameraState.orientationMode,
+        gpsStatus.latitude,
+        gpsStatus.longitude,
+        gpsStatus.compassAzimuthDegrees,
+        gpsStatus.bearingDegrees
+    ) {
+        val map = mapLibreInstance ?: return@LaunchedEffect
+        if (!cameraState.followGps || isUserGestureInProgress) return@LaunchedEffect
+
+        val targetBearing = when (cameraState.orientationMode) {
+            MapOrientationMode.NORTH_UP -> 0.0
+            MapOrientationMode.COMPASS_ROTATE -> gpsStatus.compassAzimuthDegrees.toDouble()
+            MapOrientationMode.GPS_BEARING -> gpsStatus.bearingDegrees.toDouble()
+        }
+
+        // Zachowujemy aktualny zoom z MapLibre podczas podążania za pozycją GPS
+        val currentMapZoom = map.cameraPosition.zoom.takeIf { it > 1.0 } ?: cameraState.zoom
+
+        val cameraPosition = CameraPosition.Builder()
+            .target(LatLng(gpsStatus.latitude, gpsStatus.longitude))
+            .zoom(currentMapZoom)
+            .tilt(cameraState.tiltDegrees)
+            .bearing(targetBearing)
+            .build()
+
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 300)
     }
 
     AndroidView(
@@ -165,10 +188,18 @@ fun OpenNaviMapLibreView(
                         isAttributionEnabled = true
                         isRotateGesturesEnabled = true
                         isTiltGesturesEnabled = true
+                        isZoomGesturesEnabled = true
+                        isScrollGesturesEnabled = true
                     }
 
                     map.addOnCameraMoveStartedListener { reason ->
                         if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE) {
+                            isUserGestureInProgress = true
+                        }
+                    }
+
+                    map.addOnCameraMoveListener {
+                        if (isUserGestureInProgress) {
                             val pos = map.cameraPosition
                             pos.target?.let { target ->
                                 onMapMovedByUser(target.latitude, target.longitude, pos.zoom)
@@ -178,10 +209,11 @@ fun OpenNaviMapLibreView(
 
                     map.addOnCameraIdleListener {
                         val pos = map.cameraPosition
+                        if (isUserGestureInProgress) {
+                            isUserGestureInProgress = false
+                        }
                         pos.target?.let { target ->
-                            if (!cameraState.followGps) {
-                                onMapMovedByUser(target.latitude, target.longitude, pos.zoom)
-                            }
+                            onMapMovedByUser(target.latitude, target.longitude, pos.zoom)
                         }
                     }
 

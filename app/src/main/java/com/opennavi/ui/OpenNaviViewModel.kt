@@ -22,6 +22,8 @@ import com.opennavi.service.ActiveRecordingSession
 import com.opennavi.service.LocationAndCompassTracker
 import com.opennavi.service.TrackRecordingController
 import com.opennavi.service.TrackRecordingService
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +49,8 @@ data class MapCameraState(
     val bearingDegrees: Double = 0.0,
     val followGps: Boolean = true,
     val orientationMode: MapOrientationMode = MapOrientationMode.NORTH_UP,
-    val styleTheme: MapStyleTheme = MapStyleTheme.OUTDOOR_LIBERTY
+    val styleTheme: MapStyleTheme = MapStyleTheme.OUTDOOR_LIBERTY,
+    val cameraCommandId: Long = 0L
 )
 
 class OpenNaviViewModel(
@@ -132,7 +135,8 @@ class OpenNaviViewModel(
                 centerLat = gps.latitude,
                 centerLon = gps.longitude,
                 followGps = true,
-                orientationMode = nextMode
+                orientationMode = nextMode,
+                cameraCommandId = current.cameraCommandId + 1L
             )
         }
     }
@@ -140,13 +144,19 @@ class OpenNaviViewModel(
     fun toggle3DTilt() {
         _cameraState.update { current ->
             val nextTilt = if (current.tiltDegrees < 10.0) 48.0 else 0.0
-            current.copy(tiltDegrees = nextTilt)
+            current.copy(
+                tiltDegrees = nextTilt,
+                cameraCommandId = current.cameraCommandId + 1L
+            )
         }
     }
 
     fun zoomBy(delta: Double) {
         _cameraState.update { current ->
-            current.copy(zoom = (current.zoom + delta).coerceIn(2.0, 20.0))
+            current.copy(
+                zoom = (current.zoom + delta).coerceIn(2.0, 20.0),
+                cameraCommandId = current.cameraCommandId + 1L
+            )
         }
     }
 
@@ -161,7 +171,8 @@ class OpenNaviViewModel(
                 centerLat = lat,
                 centerLon = lon,
                 zoom = zoom,
-                followGps = false
+                followGps = false,
+                cameraCommandId = it.cameraCommandId + 1L
             )
         }
     }
@@ -389,12 +400,20 @@ class OpenNaviViewModel(
         _activeRoute.value = null
     }
 
+    private var bannerJob: Job? = null
+
     fun dismissBannerMessage() {
+        bannerJob?.cancel()
         _statusBannerMessage.value = null
     }
 
     private fun showMessage(msg: String) {
+        bannerJob?.cancel()
         _statusBannerMessage.value = msg
+        bannerJob = viewModelScope.launch {
+            delay(2600L)
+            _statusBannerMessage.value = null
+        }
     }
 
     companion object {
