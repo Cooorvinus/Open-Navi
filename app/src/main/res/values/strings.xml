@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Open Navi</string>
+    <string name="notification_channel_track">Nagrywanie śladu GPX</string>
+    <string name="notification_channel_maps">Pobieranie i aktualizacja map</string>
+</resources>

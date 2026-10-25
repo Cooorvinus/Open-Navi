@@ -1,0 +1,21 @@
+# IDE / Android Studio
+.idea/
+*.iml
+.gradle/
+local.properties
+
+# Build outputs
+build/
+app/build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystore files
+*.jks
+*.keystore
+
+# OS / Misc
+.DS_Store
+Thumbs.db
+*.log
