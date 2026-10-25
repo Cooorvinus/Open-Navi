@@ -201,7 +201,7 @@ fun OpenNaviMapLibreView(
                     map.uiSettings.apply {
                         isCompassEnabled = false // Posiadamy własny kompas w stylu Locus Map
                         isLogoEnabled = false
-                        isAttributionEnabled = true
+                        isAttributionEnabled = false
                         isRotateGesturesEnabled = true
                         isTiltGesturesEnabled = true
                         isZoomGesturesEnabled = true

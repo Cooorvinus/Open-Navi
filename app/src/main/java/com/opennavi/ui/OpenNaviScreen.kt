@@ -272,8 +272,7 @@ fun OpenNaviScreen(
 
         NavigationBar(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding(),
+                .align(Alignment.BottomCenter),
             containerColor = Color(0xF5161B22),
             contentColor = Color.White
         ) {
