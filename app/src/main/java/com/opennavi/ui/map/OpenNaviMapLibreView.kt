@@ -101,6 +101,25 @@ fun OpenNaviMapLibreView(
                 Style.Builder().fromUri(desiredStyleUrl)
             }
             map.setStyle(styleBuilder) { style ->
+                // Po wczytaniu stylu wymuszamy wyśrodkowanie i powiększenie (np. 16.3),
+                // ponieważ zdalny plik style.json (OpenFreeMap) posiada własne domyślne zoom=1 (cała kula ziemska).
+                val targetLat = if (cameraState.followGps) gpsStatus.latitude else cameraState.centerLat
+                val targetLon = if (cameraState.followGps) gpsStatus.longitude else cameraState.centerLon
+                val targetBearing = when (cameraState.orientationMode) {
+                    MapOrientationMode.NORTH_UP -> 0.0
+                    MapOrientationMode.COMPASS_ROTATE -> gpsStatus.compassAzimuthDegrees.toDouble()
+                    MapOrientationMode.GPS_BEARING -> gpsStatus.bearingDegrees.toDouble()
+                }
+                map.moveCamera(
+                    CameraUpdateFactory.newCameraPosition(
+                        CameraPosition.Builder()
+                            .target(LatLng(targetLat, targetLon))
+                            .zoom(cameraState.zoom)
+                            .tilt(cameraState.tiltDegrees)
+                            .bearing(targetBearing)
+                            .build()
+                    )
+                )
                 setupOrUpdateMapOverlays(
                     style = style,
                     gpsStatus = gpsStatus,
@@ -164,12 +183,9 @@ fun OpenNaviMapLibreView(
             MapOrientationMode.GPS_BEARING -> gpsStatus.bearingDegrees.toDouble()
         }
 
-        // Zachowujemy aktualny zoom z MapLibre podczas podążania za pozycją GPS
-        val currentMapZoom = map.cameraPosition.zoom.takeIf { it > 1.0 } ?: cameraState.zoom
-
         val cameraPosition = CameraPosition.Builder()
             .target(LatLng(gpsStatus.latitude, gpsStatus.longitude))
-            .zoom(currentMapZoom)
+            .zoom(cameraState.zoom)
             .tilt(cameraState.tiltDegrees)
             .bearing(targetBearing)
             .build()

@@ -44,7 +44,7 @@ import java.util.Locale
 data class MapCameraState(
     val centerLat: Double = 52.2297,
     val centerLon: Double = 21.0122,
-    val zoom: Double = 15.0,
+    val zoom: Double = 16.3,
     val tiltDegrees: Double = 0.0,
     val bearingDegrees: Double = 0.0,
     val followGps: Boolean = true,
@@ -100,7 +100,7 @@ class OpenNaviViewModel(
                         current.copy(
                             centerLat = gps.latitude,
                             centerLon = gps.longitude,
-                            zoom = 15.0,
+                            zoom = 16.3,
                             followGps = true,
                             cameraCommandId = current.cameraCommandId + 1L
                         )
