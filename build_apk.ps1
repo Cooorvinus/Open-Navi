@@ -40,8 +40,11 @@ try {
     Pop-Location
 }
 
+$apkDir = Join-Path $projectRoot "APK"
 $apkDst = Join-Path $apkDir "OpenNavi.apk"
 if (-not (Test-Path $apkDst)) {
+    New-Item -ItemType Directory -Force -Path $apkDir | Out-Null
+    $apkSrc = Join-Path $projectRoot "app\build\outputs\apk\release\app-release.apk"
     Copy-Item $apkSrc $apkDst -Force
 }
 
