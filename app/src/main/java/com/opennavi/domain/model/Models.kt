@@ -77,6 +77,7 @@ data class GpsStatus(
     val latitude: Double = 52.2297,   // Domyślnie Warszawa / Polska
     val longitude: Double = 21.0122,
     val altitudeMeters: Double = 0.0,
+    val hasBarometer: Boolean = false,
     val speedMetersPerSec: Float = 0f,
     val accuracyMeters: Float = 0f,
     val bearingDegrees: Float = 0f,
@@ -84,6 +85,7 @@ data class GpsStatus(
     val satellitesVisible: Int = 0,
     val satellitesUsedInFix: Int = 0,
     val satelliteDetails: List<GnssSatelliteDetail> = emptyList(),
+    val locationProviderName: String = "Brak",
     val lastFixTimestamp: Long = 0L
 ) {
     val hasValidFix: Boolean

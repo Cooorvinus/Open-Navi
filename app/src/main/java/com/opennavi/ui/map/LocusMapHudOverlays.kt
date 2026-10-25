@@ -164,14 +164,16 @@ fun LocusTopTelemetryBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                val displayLat = if (cameraState.followGps) gpsStatus.latitude else cameraState.centerLat
-                val displayLon = if (cameraState.followGps) gpsStatus.longitude else cameraState.centerLon
+                val latHemisphere = if (gpsStatus.latitude >= 0.0) "N" else "S"
+                val lonHemisphere = if (gpsStatus.longitude >= 0.0) "E" else "W"
                 Text(
                     text = String.format(
                         Locale.US,
-                        "N %.5f°  E %.5f°  |  Zoom: %.1f",
-                        displayLat,
-                        displayLon,
+                        "GPS: %s %.5f°  %s %.5f°  |  Zoom: %.1f",
+                        latHemisphere,
+                        kotlin.math.abs(gpsStatus.latitude),
+                        lonHemisphere,
+                        kotlin.math.abs(gpsStatus.longitude),
                         cameraState.zoom
                     ),
                     color = Color(0xFFCFD8DC),
@@ -217,21 +219,27 @@ fun LocusTopTelemetryBar(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Szczegóły połączenia satelitarnego GNSS (${gpsStatus.satellitesUsedInFix}/${gpsStatus.satellitesVisible})",
+                        text = "Szczegóły GNSS (${gpsStatus.satellitesUsedInFix}/${gpsStatus.satellitesVisible}) • Źródło: ${gpsStatus.locationProviderName}",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(2.dp))
+                    val baroInfo = if (gpsStatus.hasBarometer) {
+                        "Wysokościomierz: Geoida EGM2008 (MSL) + czujnik barometryczny."
+                    } else {
+                        "Wysokościomierz: Geoida EGM2008 (MSL – skorygowano o -40.5 m względem elipsoidy WGS84)."
+                    }
                     val fixHint = if (gpsStatus.satellitesUsedInFix == 0) {
-                        "Wskazówka: 0/${gpsStatus.satellitesVisible} oznacza, że telefon widzi satelity, ale sygnał jest jeszcze zbyt słaby na dokładny Fix GPS (np. wewnątrz budynku) – aktualna pozycja może pochodzić z sieci Wi-Fi/LTE."
+                        "Wskazówka: 0/${gpsStatus.satellitesVisible} oznacza brak bezpośredniego sygnału z satelitów (np. w budynku) – pozycja pochodzi z fuzji Wi-Fi/LTE (±${gpsStatus.accuracyMeters.toInt()} m)."
                     } else {
                         "Połączenie satelitarne GPS/GNSS jest aktywne i stabilne."
                     }
                     Text(
-                        text = "• Pierwsza liczba (${gpsStatus.satellitesUsedInFix}) – satelity aktywnie używane do obliczenia Twojej pozycji (Fix).\n" +
-                            "• Druga liczba (${gpsStatus.satellitesVisible}) – wszystkie satelity widoczne na niebie.\n" +
-                            fixHint,
+                        text = "• Pierwsza liczba (${gpsStatus.satellitesUsedInFix}) – satelity używane do obliczenia pozycji (Fix).\n" +
+                            "• Druga liczba (${gpsStatus.satellitesVisible}) – satelity widoczne na niebie.\n" +
+                            "• $baroInfo\n" +
+                            "• $fixHint",
                         color = Color(0xFFB0BEC5),
                         fontSize = 11.sp,
                         lineHeight = 15.sp
