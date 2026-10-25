@@ -130,6 +130,8 @@ class LocationAndCompassTracker(
             val lastGps = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                 ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
             if (lastGps != null) {
+                // Dla zbuforowanej starej lokalizacji przy starcie aplikacji zerujemy prędkość
+                lastGps.removeSpeed()
                 onLocationChanged(lastGps)
             }
             if (hasFine) {
@@ -157,14 +159,32 @@ class LocationAndCompassTracker(
     }
 
     override fun onLocationChanged(location: Location) {
+        val isFromGpsProvider = location.provider == LocationManager.GPS_PROVIDER
+        val currentAcc = if (location.hasAccuracy()) location.accuracy else 999f
+
         _gpsStatus.update { current ->
+            // Filtr prędkości w stylu Locus Map (eliminacja fałszywych skoków prędkości wewnątrz budynków):
+            // 1. Prędkość pochodzi wyłącznie z odbiornika satelitarnego GPS (ignorujemy skoki masztów LTE/Wi-Fi).
+            // 2. Wymagamy aktywnego Fixu z satelitów (satellitesUsedInFix >= 3) oraz dokładności <= 25 m.
+            // 3. Odcinamy szum spoczynkowy poniżej 0.5 m/s (~1.8 km/h).
+            val hasReliableGpsSpeed = isFromGpsProvider &&
+                location.hasSpeed() &&
+                currentAcc <= 25f &&
+                (current.satellitesUsedInFix >= 3 || currentAcc <= 12f)
+
+            val filteredSpeed = if (hasReliableGpsSpeed && location.speed >= 0.5f) {
+                location.speed
+            } else {
+                0f
+            }
+
             current.copy(
                 latitude = location.latitude,
                 longitude = location.longitude,
                 altitudeMeters = if (location.hasAltitude()) location.altitude else current.altitudeMeters,
-                speedMetersPerSec = if (location.hasSpeed()) location.speed else 0f,
+                speedMetersPerSec = filteredSpeed,
                 accuracyMeters = if (location.hasAccuracy()) location.accuracy else current.accuracyMeters,
-                bearingDegrees = if (location.hasBearing()) location.bearing else current.bearingDegrees,
+                bearingDegrees = if (hasReliableGpsSpeed && location.hasBearing()) location.bearing else current.bearingDegrees,
                 lastFixTimestamp = location.time
             )
         }
