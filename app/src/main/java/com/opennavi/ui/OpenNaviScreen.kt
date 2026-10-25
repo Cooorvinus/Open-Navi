@@ -26,7 +26,7 @@ import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Route
-import androidx.compose.material.icons.filled.ThreeDRotation
+import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -191,7 +191,7 @@ fun OpenNaviScreen(
                 shape = CircleShape
             ) {
                 Icon(
-                    imageVector = Icons.Default.ThreeDRotation,
+                    imageVector = Icons.Default.Terrain,
                     contentDescription = "Nachylenie 3D"
                 )
             }

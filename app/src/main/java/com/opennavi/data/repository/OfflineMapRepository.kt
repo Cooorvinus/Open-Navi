@@ -6,7 +6,6 @@ import com.opennavi.data.local.CountryMapEntity
 import com.opennavi.domain.model.BoundingBox
 import com.opennavi.domain.model.CountryOfflineMap
 import com.opennavi.domain.model.OfflineMapState
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,16 +15,13 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Repozytorium zarządzające pobieraniem, zapisem lokalnym i aktualizacją map państw OpenStreetMap
  * w formacie wektorowym kompatybilnym z MapLibre (PMTiles / Geofabrik / OpenFreeMap).
  */
-@Singleton
-class OfflineMapRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+class OfflineMapRepository(
+    private val context: Context,
     private val countryMapDao: CountryMapDao,
     private val okHttpClient: OkHttpClient
 ) {
@@ -35,10 +31,8 @@ class OfflineMapRepository @Inject constructor(
         }
     }
 
-    // Aktualny postęp pobierania dla danego kodu państwa (0..100)
     private val downloadProgressMap = MutableStateFlow<Map<String, Int>>(emptyMap())
 
-    // Katalog państw Europy i Świata z darmowymi paczkami OpenStreetMap
     private val catalogCountries: List<CountryOfflineMap> = listOf(
         CountryOfflineMap(
             countryCode = "PL",
@@ -173,10 +167,6 @@ class OfflineMapRepository @Inject constructor(
             }
         }
 
-    /**
-     * Sprawdza na darmowym serwerze OSM (poprzez HTTP HEAD ETag / Last-Modified),
-     * czy dla pobranych państw pojawiła się nowsza wersja mapy.
-     */
     suspend fun checkForUpdates(): Int = withContext(Dispatchers.IO) {
         var updatesFound = 0
         for (country in catalogCountries) {
@@ -195,9 +185,6 @@ class OfflineMapRepository @Inject constructor(
         updatesFound
     }
 
-    /**
-     * Pobiera lub aktualizuje mapę państwa i zapisuje pakiet metadanych oraz kafelki lokalnie.
-     */
     suspend fun downloadOrUpdateCountry(
         countryCode: String,
         onRegionOfflineDownloadRequest: (CountryOfflineMap) -> Unit = {}
@@ -213,8 +200,6 @@ class OfflineMapRepository @Inject constructor(
 
             val targetFile = File(mapsDir, "${country.countryCode.lowercase()}_osm.pmtiles")
 
-            // Zapisujemy lokalny deskryptor i pakiet stylów/granic offline dla państwa
-            // oraz zlecamy natywnemu OfflineManagerowi MapLibre synchronizację obszaru.
             for (step in 1..9) {
                 kotlinx.coroutines.delay(140L)
                 updateProgress(countryCode, step * 10)
@@ -265,9 +250,6 @@ class OfflineMapRepository @Inject constructor(
         }
     }
 
-    /**
-     * Symuluje pojawienie się nowej kompilacji OSM na serwerze (do przetestowania przycisku "Aktualizuj mapę").
-     */
     suspend fun markUpdateAvailableForTesting(countryCode: String) = withContext(Dispatchers.IO) {
         val existing = countryMapDao.getCountryMap(countryCode) ?: return@withContext
         val newRemoteTag = "OSM-${java.time.LocalDate.now()}-rev2"

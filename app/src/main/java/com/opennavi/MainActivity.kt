@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import com.opennavi.domain.model.RecordedTrack
 import com.opennavi.ui.OpenNaviScreen
 import com.opennavi.ui.OpenNaviViewModel
-import dagger.hilt.android.AndroidEntryPoint
 
 private val OpenNaviDarkColorScheme = darkColorScheme(
     primary = Color(0xFF66BB6A),
@@ -37,14 +36,17 @@ private val OpenNaviLightColorScheme = lightColorScheme(
     tertiary = Color(0xFFEF6C00)
 )
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: OpenNaviViewModel by viewModels()
+    private val viewModel: OpenNaviViewModel by viewModels {
+        OpenNaviViewModel.provideFactory(
+            appContext = applicationContext,
+            container = (application as OpenNaviApplication).container
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Natywna obsługa Edge-to-Edge dla Androida 15-17 (API 35-37)
         enableEdgeToEdge()
 
         setContent {
@@ -57,7 +59,6 @@ class MainActivity : ComponentActivity() {
                 viewModel.startSensors()
             }
 
-            // Selektor pliku do importu GPX
             val importGpxLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.OpenDocument()
             ) { uri ->
@@ -68,7 +69,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // Selektor pliku do zapisu / eksportu GPX
             val exportGpxLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.CreateDocument("application/gpx+xml")
             ) { uri ->

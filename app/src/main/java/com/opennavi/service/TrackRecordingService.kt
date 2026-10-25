@@ -4,20 +4,23 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.lifecycleScope
 import com.opennavi.MainActivity
+import com.opennavi.OpenNaviApplication
 import com.opennavi.R
 import com.opennavi.data.gpx.GpxSerializer
-import com.opennavi.domain.model.RecordedTrack
 import com.opennavi.domain.model.TrackPoint
-import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,8 +28,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
-import javax.inject.Inject
-import javax.inject.Singleton
 
 data class ActiveRecordingSession(
     val isRecording: Boolean = false,
@@ -40,8 +41,7 @@ data class ActiveRecordingSession(
     val points: List<TrackPoint> = emptyList()
 )
 
-@Singleton
-class TrackRecordingController @Inject constructor() {
+class TrackRecordingController {
     private val _session = MutableStateFlow(ActiveRecordingSession())
     val session: StateFlow<ActiveRecordingSession> = _session.asStateFlow()
 
@@ -58,17 +58,24 @@ class TrackRecordingController @Inject constructor() {
  * Usługa pierwszoplanowa (Foreground Service) dla Androida 15–17 (API 35–37)
  * z jawnym typem `ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION`.
  */
-@AndroidEntryPoint
-class TrackRecordingService : LifecycleService() {
+class TrackRecordingService : Service() {
 
-    @Inject
-    lateinit var locationTracker: LocationAndCompassTracker
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    @Inject
-    lateinit var recordingController: TrackRecordingController
+    private val appContainer by lazy {
+        (application as OpenNaviApplication).container
+    }
+
+    private val locationTracker: LocationAndCompassTracker
+        get() = appContainer.locationTracker
+
+    private val recordingController: TrackRecordingController
+        get() = appContainer.recordingController
 
     private var timerJob: Job? = null
     private var locationCollectorJob: Job? = null
+
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -76,7 +83,6 @@ class TrackRecordingService : LifecycleService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
             ACTION_START -> startRecording()
             ACTION_PAUSE -> pauseRecording()
@@ -97,7 +103,6 @@ class TrackRecordingService : LifecycleService() {
             )
         }
 
-        // Uruchomienie Foreground Service z typem LOCATION wymaganym w Androidzie 15-17
         ServiceCompat.startForeground(
             this,
             NOTIFICATION_ID,
@@ -126,7 +131,7 @@ class TrackRecordingService : LifecycleService() {
 
     private fun startCollectors() {
         timerJob?.cancel()
-        timerJob = lifecycleScope.launch {
+        timerJob = serviceScope.launch {
             while (true) {
                 delay(1000L)
                 val current = recordingController.session.value
@@ -139,7 +144,7 @@ class TrackRecordingService : LifecycleService() {
         }
 
         locationCollectorJob?.cancel()
-        locationCollectorJob = lifecycleScope.launch {
+        locationCollectorJob = serviceScope.launch {
             locationTracker.gpsStatus.collect { gps ->
                 val state = recordingController.session.value
                 if (!state.isRecording || state.isPaused || !gps.hasValidFix) return@collect
@@ -168,7 +173,6 @@ class TrackRecordingService : LifecycleService() {
                         newPoint.latitude,
                         newPoint.longitude
                     )
-                    // Filtrujemy szum GPS (< 2.0 metra)
                     if (dist >= 2.0) {
                         val altDiff = newPoint.altitudeMeters - prevPoint.altitudeMeters
                         val addGain = if (altDiff > 1.5) altDiff else 0.0
@@ -187,6 +191,11 @@ class TrackRecordingService : LifecycleService() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        serviceScope.cancel()
+        super.onDestroy()
     }
 
     private fun updateNotification(distanceMeters: Double, elapsedMillis: Long) {

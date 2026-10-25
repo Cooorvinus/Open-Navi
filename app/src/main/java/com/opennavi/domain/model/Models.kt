@@ -1,7 +1,5 @@
 package com.opennavi.domain.model
 
-import kotlinx.serialization.Serializable
-
 /**
  * Tryb orientacji mapy inspirowany Locus Map:
  * - NORTH_UP: Północ zawsze u góry ekranu
@@ -70,7 +68,6 @@ enum class OfflineMapState {
 /**
  * Model państwa dostępnego do pobrania i aktualizacji offline (OpenStreetMap PMTiles / Vector).
  */
-@Serializable
 data class CountryOfflineMap(
     val countryCode: String,
     val countryNamePl: String,
@@ -86,7 +83,6 @@ data class CountryOfflineMap(
     val state: OfflineMapState = OfflineMapState.NOT_DOWNLOADED
 )
 
-@Serializable
 data class BoundingBox(
     val minLon: Double,
     val minLat: Double,
@@ -100,7 +96,6 @@ data class BoundingBox(
 /**
  * Pojedynczy punkt śladu GPX.
  */
-@Serializable
 data class TrackPoint(
     val latitude: Double,
     val longitude: Double,

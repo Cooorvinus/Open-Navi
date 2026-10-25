@@ -2,6 +2,7 @@
 <data-extraction-rules>
     <cloud-backup>
         <include domain="database" path="." />
+        <include domain="file" path="." />
         <exclude domain="file" path="offline_maps/" />
     </cloud-backup>
     <device-transfer>

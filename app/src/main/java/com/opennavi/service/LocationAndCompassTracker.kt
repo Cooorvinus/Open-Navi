@@ -15,21 +15,17 @@ import android.os.Handler
 import android.os.Looper
 import androidx.core.content.ContextCompat
 import com.opennavi.domain.model.GpsStatus
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Menedżer fuzji sensorów (GNSS / GPS + Kompas / Wektor obrotu) w stylu Locus Map.
  * Natywnie obsługuje API Androida 15–17.
  */
-@Singleton
-class LocationAndCompassTracker @Inject constructor(
-    @ApplicationContext private val context: Context
+class LocationAndCompassTracker(
+    private val context: Context
 ) : LocationListener, SensorEventListener {
 
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -113,7 +109,6 @@ class LocationAndCompassTracker @Inject constructor(
             }
         }
 
-        // Rejestracja czujnika orientacji (Rotation Vector dla kompasu)
         sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)?.let { rotationSensor ->
             sensorManager.registerListener(
                 this,

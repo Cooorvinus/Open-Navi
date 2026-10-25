@@ -3,10 +3,12 @@ package com.opennavi.ui
 import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.opennavi.data.gpx.GpxSerializer
 import com.opennavi.data.repository.OfflineMapRepository
 import com.opennavi.data.repository.TrackAndWaypointRepository
+import com.opennavi.di.AppContainer
 import com.opennavi.domain.model.CountryOfflineMap
 import com.opennavi.domain.model.GpsStatus
 import com.opennavi.domain.model.MapOrientationMode
@@ -20,8 +22,6 @@ import com.opennavi.service.ActiveRecordingSession
 import com.opennavi.service.LocationAndCompassTracker
 import com.opennavi.service.TrackRecordingController
 import com.opennavi.service.TrackRecordingService
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.offline.OfflineManager
 import org.maplibre.android.offline.OfflineRegion
@@ -39,7 +38,6 @@ import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import javax.inject.Inject
 
 data class MapCameraState(
     val centerLat: Double = 52.2297,
@@ -52,9 +50,8 @@ data class MapCameraState(
     val styleTheme: MapStyleTheme = MapStyleTheme.OUTDOOR_LIBERTY
 )
 
-@HiltViewModel
-class OpenNaviViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+class OpenNaviViewModel(
+    private val appContext: Context,
     private val locationTracker: LocationAndCompassTracker,
     private val recordingController: TrackRecordingController,
     private val offlineMapRepository: OfflineMapRepository,
@@ -154,8 +151,6 @@ class OpenNaviViewModel @Inject constructor(
         }
     }
 
-    // --- Zarządzanie Nagrywaniem Śladu GPX ---
-
     fun startTrackRecording() {
         val intent = Intent(appContext, TrackRecordingService::class.java).apply {
             action = TrackRecordingService.ACTION_START
@@ -248,8 +243,6 @@ class OpenNaviViewModel @Inject constructor(
         }
     }
 
-    // --- Zarządzanie Punktami (Waypoints / POI) ---
-
     fun addWaypointAtMapCenter(
         name: String,
         description: String,
@@ -282,8 +275,6 @@ class OpenNaviViewModel @Inject constructor(
             showMessage("Usunięto punkt: ${waypoint.name}")
         }
     }
-
-    // --- Zarządzanie Mapami Offline dla Państw (Pobieranie i Aktualizacja) ---
 
     fun downloadOrUpdateCountryMap(countryCode: String) {
         viewModelScope.launch {
@@ -355,8 +346,6 @@ class OpenNaviViewModel @Inject constructor(
         }
     }
 
-    // --- Wyznaczanie Trasy (Routing OSM) ---
-
     fun calculateRouteFromGpsToMapCenter(profile: RoutingProfile) {
         val gps = gpsStatus.value
         val target = cameraState.value
@@ -391,5 +380,21 @@ class OpenNaviViewModel @Inject constructor(
 
     private fun showMessage(msg: String) {
         _statusBannerMessage.value = msg
+    }
+
+    companion object {
+        fun provideFactory(appContext: Context, container: AppContainer): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return OpenNaviViewModel(
+                        appContext = appContext.applicationContext,
+                        locationTracker = container.locationTracker,
+                        recordingController = container.recordingController,
+                        offlineMapRepository = container.offlineMapRepository,
+                        trackAndWaypointRepository = container.trackAndWaypointRepository
+                    ) as T
+                }
+            }
     }
 }

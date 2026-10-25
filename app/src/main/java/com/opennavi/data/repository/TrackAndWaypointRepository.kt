@@ -5,8 +5,8 @@ import com.opennavi.data.local.TrackEntity
 import com.opennavi.data.local.WaypointDao
 import com.opennavi.data.local.WaypointEntity
 import com.opennavi.domain.model.RecordedTrack
-import com.opennavi.domain.model.RoutingProfile
 import com.opennavi.domain.model.RouteResult
+import com.opennavi.domain.model.RoutingProfile
 import com.opennavi.domain.model.TrackPoint
 import com.opennavi.domain.model.Waypoint
 import com.opennavi.domain.model.WaypointCategory
@@ -14,26 +14,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.double
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.Locale
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class TrackAndWaypointRepository @Inject constructor(
+class TrackAndWaypointRepository(
     private val trackDao: TrackDao,
     private val waypointDao: WaypointDao,
     private val okHttpClient: OkHttpClient
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
-
     fun observeAllTracks(): Flow<List<RecordedTrack>> =
         trackDao.observeAllTracks().map { entities ->
             entities.map { it.toDomain() }
@@ -103,27 +94,27 @@ class TrackAndWaypointRepository @Inject constructor(
                     error("Błąd serwera routingu OSM (${response.code})")
                 }
                 val body = response.body?.string() ?: error("Pusta odpowiedź serwera routingu")
-                val root = json.parseToJsonElement(body).jsonObject
-                val routes = root["routes"]?.jsonArray
-                if (routes.isNullOrEmpty()) {
+                val root = JSONObject(body)
+                val routes = root.optJSONArray("routes")
+                if (routes == null || routes.length() == 0) {
                     error("Nie znaleziono trasy dla wybranego odcinka")
                 }
 
-                val firstRoute = routes[0].jsonObject
-                val distanceMeters = firstRoute["distance"]?.jsonPrimitive?.double ?: 0.0
-                val durationSeconds = firstRoute["duration"]?.jsonPrimitive?.double ?: 0.0
+                val firstRoute = routes.getJSONObject(0)
+                val distanceMeters = firstRoute.optDouble("distance", 0.0)
+                val durationSeconds = firstRoute.optDouble("duration", 0.0)
 
-                val coordinatesArray = firstRoute["geometry"]
-                    ?.jsonObject
-                    ?.get("coordinates")
-                    ?.jsonArray
+                val coordinatesArray = firstRoute
+                    .optJSONObject("geometry")
+                    ?.optJSONArray("coordinates")
                     ?: error("Brak geometrii trasy")
 
-                val geometryPoints = coordinatesArray.map { coordElem ->
-                    val pair = coordElem.jsonArray
-                    val lon = pair[0].jsonPrimitive.double
-                    val lat = pair[1].jsonPrimitive.double
-                    lat to lon
+                val geometryPoints = mutableListOf<Pair<Double, Double>>()
+                for (i in 0 until coordinatesArray.length()) {
+                    val pair = coordinatesArray.getJSONArray(i)
+                    val lon = pair.getDouble(0)
+                    val lat = pair.getDouble(1)
+                    geometryPoints.add(lat to lon)
                 }
 
                 RouteResult(
@@ -138,7 +129,22 @@ class TrackAndWaypointRepository @Inject constructor(
 
     private fun TrackEntity.toDomain(): RecordedTrack {
         val points = runCatching {
-            json.decodeFromString<List<TrackPoint>>(pointsJson)
+            val arr = JSONArray(pointsJson)
+            val list = mutableListOf<TrackPoint>()
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                list.add(
+                    TrackPoint(
+                        latitude = obj.getDouble("lat"),
+                        longitude = obj.getDouble("lon"),
+                        altitudeMeters = obj.optDouble("alt", 0.0),
+                        timestampMillis = obj.optLong("time", 0L),
+                        speedMetersPerSec = obj.optDouble("spd", 0.0).toFloat(),
+                        accuracyMeters = obj.optDouble("acc", 0.0).toFloat()
+                    )
+                )
+            }
+            list
         }.getOrDefault(emptyList())
 
         return RecordedTrack(
@@ -161,7 +167,18 @@ class TrackAndWaypointRepository @Inject constructor(
     }
 
     private fun RecordedTrack.toEntity(): TrackEntity {
-        val encodedPoints = json.encodeToString(points)
+        val arr = JSONArray()
+        for (pt in points) {
+            val obj = JSONObject().apply {
+                put("lat", pt.latitude)
+                put("lon", pt.longitude)
+                put("alt", pt.altitudeMeters)
+                put("time", pt.timestampMillis)
+                put("spd", pt.speedMetersPerSec.toDouble())
+                put("acc", pt.accuracyMeters.toDouble())
+            }
+            arr.put(obj)
+        }
         return TrackEntity(
             id = id,
             name = name,
@@ -175,7 +192,7 @@ class TrackAndWaypointRepository @Inject constructor(
             maxSpeedMetersPerSec = maxSpeedMetersPerSec,
             minAltitudeMeters = minAltitudeMeters,
             maxAltitudeMeters = maxAltitudeMeters,
-            pointsJson = encodedPoints,
+            pointsJson = arr.toString(),
             isVisibleOnMap = isVisibleOnMap,
             colorHex = colorHex
         )

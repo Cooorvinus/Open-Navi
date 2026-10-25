@@ -4,7 +4,7 @@
 .gradle/
 local.properties
 
-# Build outputs
+# Build outputs (folder APK/ jest celowo śledzony w Git)
 build/
 app/build/
 captures/
@@ -12,6 +12,7 @@ captures/
 .cxx/
 
 # Keystore files
+keystore/
 *.jks
 *.keystore
 
