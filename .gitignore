@@ -2,6 +2,7 @@
 .idea/
 *.iml
 .gradle/
+.kotlin/
 local.properties
 
 # Build outputs (folder APK/ jest celowo śledzony w Git)
