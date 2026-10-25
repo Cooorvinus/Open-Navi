@@ -44,7 +44,7 @@ import java.util.Locale
 data class MapCameraState(
     val centerLat: Double = 52.2297,
     val centerLon: Double = 21.0122,
-    val zoom: Double = 12.5,
+    val zoom: Double = 15.0,
     val tiltDegrees: Double = 0.0,
     val bearingDegrees: Double = 0.0,
     val followGps: Boolean = true,
@@ -89,10 +89,23 @@ class OpenNaviViewModel(
     private val _isCalculatingRoute = MutableStateFlow(false)
     val isCalculatingRoute: StateFlow<Boolean> = _isCalculatingRoute.asStateFlow()
 
+    private var hasCenteredOnInitialGpsFix = false
+
     init {
         viewModelScope.launch {
             gpsStatus.collect { gps ->
-                if (_cameraState.value.followGps) {
+                if (!hasCenteredOnInitialGpsFix && gps.lastFixTimestamp > 0L) {
+                    hasCenteredOnInitialGpsFix = true
+                    _cameraState.update { current ->
+                        current.copy(
+                            centerLat = gps.latitude,
+                            centerLon = gps.longitude,
+                            zoom = 15.0,
+                            followGps = true,
+                            cameraCommandId = current.cameraCommandId + 1L
+                        )
+                    }
+                } else if (_cameraState.value.followGps) {
                     _cameraState.update { current ->
                         current.copy(
                             centerLat = gps.latitude,
@@ -106,6 +119,17 @@ class OpenNaviViewModel(
 
     fun startSensors() {
         locationTracker.startTracking()
+        val gps = gpsStatus.value
+        if (gps.lastFixTimestamp > 0L) {
+            _cameraState.update { current ->
+                current.copy(
+                    centerLat = gps.latitude,
+                    centerLon = gps.longitude,
+                    followGps = true,
+                    cameraCommandId = current.cameraCommandId + 1L
+                )
+            }
+        }
     }
 
     fun updateMapCenterFromGesture(lat: Double, lon: Double, zoom: Double) {

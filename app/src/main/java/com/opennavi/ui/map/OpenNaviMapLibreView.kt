@@ -208,14 +208,27 @@ fun OpenNaviMapLibreView(
                     }
 
                     map.addOnCameraIdleListener {
-                        val pos = map.cameraPosition
                         if (isUserGestureInProgress) {
                             isUserGestureInProgress = false
-                        }
-                        pos.target?.let { target ->
-                            onMapMovedByUser(target.latitude, target.longitude, pos.zoom)
+                            val pos = map.cameraPosition
+                            pos.target?.let { target ->
+                                onMapMovedByUser(target.latitude, target.longitude, pos.zoom)
+                            }
                         }
                     }
+
+                    // Ustawienie początkowej pozycji i domyślnego powiększenia (Zoom 15) od razu przy starcie mapy
+                    val initLat = if (cameraState.followGps) gpsStatus.latitude else cameraState.centerLat
+                    val initLon = if (cameraState.followGps) gpsStatus.longitude else cameraState.centerLon
+                    map.moveCamera(
+                        CameraUpdateFactory.newCameraPosition(
+                            CameraPosition.Builder()
+                                .target(LatLng(initLat, initLon))
+                                .zoom(cameraState.zoom)
+                                .tilt(cameraState.tiltDegrees)
+                                .build()
+                        )
+                    )
 
                     mapLibreInstance = map
                 }
